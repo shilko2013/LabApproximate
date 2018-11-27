@@ -51,4 +51,8 @@ class PointTable extends JTable {
         model.removeRow(number);
         model.fireTableRowsDeleted(number, number);
     }
+
+    public DefaultTableModel getTableModel() {
+        return model;
+    }
 }

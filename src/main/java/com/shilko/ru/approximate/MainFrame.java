@@ -13,13 +13,12 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RefineryUtilities;
 
 import javax.swing.*;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.lang.reflect.Array;
+import java.util.*;
+import java.util.List;
 
 public class MainFrame extends JFrame {
 
@@ -32,6 +31,7 @@ public class MainFrame extends JFrame {
 
     }
 
+    private final List<Point> pointList = new ArrayList<>();
     private final XYSeries points = new XYSeries("Points");
     private final XYSeries func = new XYSeries("Func");
     private final XYSeriesCollection dataset = new XYSeriesCollection();
@@ -40,6 +40,9 @@ public class MainFrame extends JFrame {
     private PointTable pointTable;
     private JScrollPane scrollPaneTable;
     private ChartPanel chartPanel;
+    private final JButton addPoint = new JButton("Добавить точку");
+    private final JButton deletePoint = new JButton("Удалить точки");
+    private final JButton approximate = new JButton("Аппроксимировать функцию");
 
     public MainFrame(final String title) {
         super(title);
@@ -47,15 +50,59 @@ public class MainFrame extends JFrame {
         initScrollPointTable();
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         addOnExitListener();
-        JPanel p = new JPanel(new BorderLayout());
-        p.add(chartPanel, BorderLayout.CENTER);
-        p.add(x, BorderLayout.AFTER_LAST_LINE);
-        p.add(scrollPaneTable, BorderLayout.BEFORE_FIRST_LINE);
+        initButtons();
+        JPanel p = new JPanel();
+        x.setPreferredSize(new Dimension(200, 20));
+        y.setPreferredSize(new Dimension(200, 20));
+        p.add(chartPanel);
+        p.add(x);
+        p.add(y);
+        p.add(scrollPaneTable);
+        p.add(addPoint);
+        p.add(deletePoint);
+        p.add(approximate);
         setContentPane(p);
     }
 
+    private void initButtons() {
+        JFrame frame = this;
+        addPoint.addActionListener(actionEvent -> {
+            double xarg, yarg;
+            try {
+                xarg = Double.parseDouble(x.getText());
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(frame, "Неверная координата Х!", "Ошибка!", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            try {
+                yarg = Double.parseDouble(y.getText());
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(frame, "Неверная координата Y!", "Ошибка!", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            pointList.add(new Point(xarg, yarg));
+            pointTable.addRow(new Object[]{xarg, yarg});
+            x.setText("");
+            y.setText("");
+        });
+        deletePoint.addActionListener(actionEvent -> {
+            Vector vector = pointTable.getTableModel().getDataVector();
+            int[] selectedRows = pointTable.getSelectedRows();
+            if (selectedRows.length == 0)
+                JOptionPane.showMessageDialog(frame, "Выделите нужные точки в таблице!", "Ошибка!", JOptionPane.ERROR_MESSAGE);
+            Arrays.sort(selectedRows);
+            for (int i = selectedRows.length - 1; i >= 0; --i)
+                try {
+                pointList.remove(new Point(((Double)((Vector) (vector.elementAt(selectedRows[i]))).elementAt(0)),
+                        ((Double)((Vector) (vector.elementAt(selectedRows[i]))).elementAt(1))));
+                pointTable.removeRow(selectedRows[i]);
+            } catch (Exception ignore){}
+            scrollPaneTable.revalidate();
+        });
+    }
+
     private void initScrollPointTable() {
-        pointTable = new PointTable(new Object[][]{{11,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2}}, new String[]{"X", "Y"});
+        pointTable = new PointTable(new Object[][]{}, new String[]{"X", "Y"});
         pointTable.setFont(getFont());
         scrollPaneTable = new JScrollPane(pointTable);
         scrollPaneTable.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
