@@ -32,66 +32,34 @@ public class MainFrame extends JFrame {
 
     }
 
-    class IntegerTextField extends JTextField {
-        private IntegerTextField() {
-            super();
-            ((AbstractDocument) getDocument()).setDocumentFilter(new DocumentFilter() {
-                @Override
-                public void insertString(DocumentFilter.FilterBypass fb, int offset, String string, AttributeSet attr)
-                        throws BadLocationException {
-                    if (string == null) return;
-                    replace(fb, offset, 0, string, attr);
-                }
-
-                @Override
-                public void remove(DocumentFilter.FilterBypass fb, int offset, int length) throws BadLocationException {
-                    replace(fb, offset, length, "", null);
-                }
-
-                @Override
-                public void replace(DocumentFilter.FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
-                        throws BadLocationException {
-                    fb.replace(offset, length, checkInput(text, offset), attrs);
-                }
-
-                private String checkInput(String proposedValue, int offset) throws BadLocationException {
-                    // Убираем все пробелы из строки для вставки
-                    /*StringBuilder temp = new StringBuilder(getText());
-                    temp.insert(offset,proposedValue);
-                    if (temp.length()>1 && temp.charAt(0)=='0') {
-                        Toolkit.getDefaultToolkit().beep();
-                        return "";
-                    }
-                    return proposedValue.replaceAll("(\\D)","");*/
-                    StringBuilder temp = new StringBuilder(getText());
-                    temp.insert(offset, proposedValue);
-                    if (temp.toString().startsWith("00")
-                            || !temp.toString().matches("-?\\d*[.,]?\\d{0,16}")) {
-                        Toolkit.getDefaultToolkit().beep();
-                        return "";
-                    }
-                    return proposedValue.replace(",",".");
-                }
-            });
-        }
-    }
-
     private final XYSeries points = new XYSeries("Points");
     private final XYSeries func = new XYSeries("Func");
     private final XYSeriesCollection dataset = new XYSeriesCollection();
     private final IntegerTextField x = new IntegerTextField();
     private final IntegerTextField y = new IntegerTextField();
+    private PointTable pointTable;
+    private JScrollPane scrollPaneTable;
     private ChartPanel chartPanel;
 
     public MainFrame(final String title) {
         super(title);
         initGraph();
+        initScrollPointTable();
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         addOnExitListener();
         JPanel p = new JPanel(new BorderLayout());
         p.add(chartPanel, BorderLayout.CENTER);
         p.add(x, BorderLayout.AFTER_LAST_LINE);
+        p.add(scrollPaneTable, BorderLayout.BEFORE_FIRST_LINE);
         setContentPane(p);
+    }
+
+    private void initScrollPointTable() {
+        pointTable = new PointTable(new Object[][]{{11,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2},{1,2}}, new String[]{"X", "Y"});
+        pointTable.setFont(getFont());
+        scrollPaneTable = new JScrollPane(pointTable);
+        scrollPaneTable.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPaneTable.setPreferredSize(new Dimension(200, 200));
     }
 
     private void addOnExitListener() {
