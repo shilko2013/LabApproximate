@@ -13,6 +13,10 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RefineryUtilities;
 
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -28,16 +32,66 @@ public class MainFrame extends JFrame {
 
     }
 
-   private final XYSeries points = new XYSeries("Points");
-   private final XYSeries func = new XYSeries("Func");
-   private final XYSeriesCollection dataset = new XYSeriesCollection();
-   private ChartPanel chartPanel;
+    class IntegerTextField extends JTextField {
+        private IntegerTextField() {
+            super();
+            ((AbstractDocument) getDocument()).setDocumentFilter(new DocumentFilter() {
+                @Override
+                public void insertString(DocumentFilter.FilterBypass fb, int offset, String string, AttributeSet attr)
+                        throws BadLocationException {
+                    if (string == null) return;
+                    replace(fb, offset, 0, string, attr);
+                }
+
+                @Override
+                public void remove(DocumentFilter.FilterBypass fb, int offset, int length) throws BadLocationException {
+                    replace(fb, offset, length, "", null);
+                }
+
+                @Override
+                public void replace(DocumentFilter.FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+                        throws BadLocationException {
+                    fb.replace(offset, length, checkInput(text, offset), attrs);
+                }
+
+                private String checkInput(String proposedValue, int offset) throws BadLocationException {
+                    // Убираем все пробелы из строки для вставки
+                    /*StringBuilder temp = new StringBuilder(getText());
+                    temp.insert(offset,proposedValue);
+                    if (temp.length()>1 && temp.charAt(0)=='0') {
+                        Toolkit.getDefaultToolkit().beep();
+                        return "";
+                    }
+                    return proposedValue.replaceAll("(\\D)","");*/
+                    StringBuilder temp = new StringBuilder(getText());
+                    temp.insert(offset, proposedValue);
+                    if (temp.toString().startsWith("00")
+                            || !temp.toString().matches("-?\\d*[.,]?\\d{0,16}")) {
+                        Toolkit.getDefaultToolkit().beep();
+                        return "";
+                    }
+                    return proposedValue.replace(",",".");
+                }
+            });
+        }
+    }
+
+    private final XYSeries points = new XYSeries("Points");
+    private final XYSeries func = new XYSeries("Func");
+    private final XYSeriesCollection dataset = new XYSeriesCollection();
+    private final IntegerTextField x = new IntegerTextField();
+    private final IntegerTextField y = new IntegerTextField();
+    private ChartPanel chartPanel;
 
     public MainFrame(final String title) {
         super(title);
         initGraph();
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         addOnExitListener();
+        JPanel p = new JPanel(new BorderLayout());
+        p.add(chartPanel, BorderLayout.CENTER);
+        p.add(x, BorderLayout.AFTER_LAST_LINE);
+        setContentPane(p);
     }
 
     private void addOnExitListener() {
@@ -53,9 +107,8 @@ public class MainFrame extends JFrame {
 
     private void initGraph() {
         final JFreeChart chart = initChart(initDataset());
-        final ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new Dimension(500, 270));
-        setContentPane(chartPanel);
     }
 
     private XYDataset initDataset() {
