@@ -1,5 +1,7 @@
 package com.shilko.ru.approximate;
 
+import com.sun.java.swing.plaf.motif.MotifButtonUI;
+import com.sun.java.swing.plaf.windows.WindowsButtonUI;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -13,6 +15,11 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RefineryUtilities;
 
 import javax.swing.*;
+import javax.swing.plaf.ButtonUI;
+import javax.swing.plaf.basic.BasicButtonUI;
+import javax.swing.plaf.metal.MetalButtonUI;
+import javax.swing.plaf.multi.MultiButtonUI;
+import javax.swing.plaf.synth.SynthButtonUI;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -47,6 +54,9 @@ public class MainFrame extends JFrame {
     private final JButton approximate = new JButton("Аппроксимировать функцию");
     private final JLabel xLabel = new JLabel("X: ");
     private final JLabel yLabel = new JLabel("Y: ");
+    private final JLabel functionLabel = new JLabel("Функция: ");
+    private final JComboBox<String> functions =
+            new JComboBox<String>(new String[]{"y = a*x + b","y = a*lnx + b","y = b*e^(a*x)"});
 
     public MainFrame(final String title) {
         super(title);
@@ -66,14 +76,22 @@ public class MainFrame extends JFrame {
         p.add(graphAndTable);
         JPanel inputs = new JPanel();
         inputs.setLayout(new BoxLayout(inputs, BoxLayout.PAGE_AXIS));
+        FlowLayout flowLayout = new FlowLayout();
+        flowLayout.setHgap(50);
+        JPanel coordPanel = new JPanel(flowLayout);
         JPanel xPanel = new JPanel();
+        JPanel yPanel = new JPanel();
         xPanel.add(xLabel);
         xPanel.add(x);
-        JPanel yPanel = new JPanel();
         yPanel.add(yLabel);
         yPanel.add(y);
-        inputs.add(xPanel);
-        inputs.add(yPanel);
+        coordPanel.add(xPanel);
+        coordPanel.add(yPanel);
+        JPanel funcPanel = new JPanel();
+        funcPanel.add(functionLabel);
+        funcPanel.add(functions);
+        inputs.add(funcPanel);
+        inputs.add(coordPanel);
         p.add(inputs);
         GridLayout gridLayout = new GridLayout(0, 2);
         gridLayout.setHgap(5);
@@ -127,6 +145,9 @@ public class MainFrame extends JFrame {
             for (int i = pointTable.getRowCount(); i > 0; --i)
                 pointTable.removeRow(0);
         });
+        //approximate.setFocusPainted(false);
+        approximate.setBackground(new Color(201, 255, 227));
+        approximate.setFont(new Font("Tahoma", Font.BOLD, 12));
     }
 
     private void initScrollPointTable() {
