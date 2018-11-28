@@ -13,6 +13,7 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RefineryUtilities;
+import org.jfree.util.ShapeUtilities;
 
 import javax.swing.*;
 import javax.swing.plaf.ButtonUI;
@@ -23,6 +24,7 @@ import javax.swing.plaf.synth.SynthButtonUI;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.Ellipse2D;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.List;
@@ -40,8 +42,9 @@ public class MainFrame extends JFrame {
     }
 
     private final List<Point> pointList = new ArrayList<>();
-    private final XYSeries points = new XYSeries("Points");
-    private final XYSeries func = new XYSeries("Func");
+    private final XYSeries points = new XYSeries("Точки");
+    private final XYSeries func1 = new XYSeries("Аппроксимирующая функция");
+    private final XYSeries func2 = new XYSeries("Аппроксимирующая функция, исключая наиболее отклоняющуюся точку");
     private final XYSeriesCollection dataset = new XYSeriesCollection();
     private final IntegerTextField x = new IntegerTextField();
     private final IntegerTextField y = new IntegerTextField();
@@ -57,6 +60,10 @@ public class MainFrame extends JFrame {
     private final JLabel functionLabel = new JLabel("Функция: ");
     private final JComboBox<String> functions =
             new JComboBox<String>(new String[]{"y = a*x + b","y = a*lnx + b","y = b*e^(a*x)"});
+    private final JLabel oldA = new JLabel("");
+    private final JLabel oldB = new JLabel("");
+    private final JLabel newA = new JLabel("");
+    private final JLabel newB = new JLabel("");
 
     public MainFrame(final String title) {
         super(title);
@@ -93,6 +100,35 @@ public class MainFrame extends JFrame {
         inputs.add(funcPanel);
         inputs.add(coordPanel);
         p.add(inputs);
+
+        JPanel labelOldKoef = new JPanel();
+        labelOldKoef.add(new JLabel("Значения коэффициентов для аппроксимации со всеми точками"));
+        p.add(labelOldKoef);
+        JPanel oldKoefs = new JPanel(flowLayout);
+        JPanel oldAPanel = new JPanel();
+        oldAPanel.add(new JLabel("a = "));
+        oldAPanel.add(oldA);
+        oldKoefs.add(oldAPanel);
+        JPanel oldBPanel = new JPanel();
+        oldBPanel.add(new JLabel("b = "));
+        oldBPanel.add(oldB);
+        oldKoefs.add(oldBPanel);
+        p.add(oldKoefs);
+
+        JPanel labelNewKoef = new JPanel();
+        labelNewKoef.add(new JLabel("Значения коэффициентов для аппроксимации со всеми точками кроме самой отклоняющейся"));
+        p.add(labelNewKoef);
+        JPanel newKoefs = new JPanel(flowLayout);
+        JPanel newAPanel = new JPanel();
+        newAPanel.add(new JLabel("a = "));
+        newAPanel.add(newA);
+        newKoefs.add(newAPanel);
+        JPanel newBPanel = new JPanel();
+        newBPanel.add(new JLabel("b = "));
+        newBPanel.add(newB);
+        newKoefs.add(newBPanel);
+        p.add(newKoefs);
+
         GridLayout gridLayout = new GridLayout(0, 2);
         gridLayout.setHgap(5);
         gridLayout.setVgap(5);
@@ -185,21 +221,32 @@ public class MainFrame extends JFrame {
         points.add(5.0, 5.0);
         points.add(6.0, -7.0);
         points.add(7.0, 7.0);
-        points.add(8.0, 8.0);
+        points.add(28.0, 8.0);
 
-        func.clear();
-        func.add(-1.0, 5.0);
-        func.add(2.0, 7.0);
-        func.add(3.0, 6.0);
-        func.add(4.0, -8.0);
-        func.add(5.0, 4.0);
-        func.add(6.0, 4.0);
-        func.add(7.0, 2.0);
-        func.add(8.0, 1.0);
+        func1.clear();
+        func1.add(-1.0, 5.0);
+        func1.add(2.0, 7.0);
+        func1.add(3.0, 6.0);
+        func1.add(-4.0, -8.0);
+        func1.add(5.0, 4.0);
+        func1.add(6.0, 4.0);
+        func1.add(7.0, 2.0);
+        func1.add(8.0, 1.0);
+
+        func2.clear();
+        func2.add(-12.0, 5.0);
+        func2.add(22.0, 7.0);
+        func2.add(32.0, 6.0);
+        func2.add(42.0, -8.0);
+        func2.add(52.0, 4.0);
+        func2.add(62.0, 4.0);
+        func2.add(72.0, 2.0);
+        func2.add(28.0, 1.0);
 
         dataset.removeAllSeries();
         dataset.addSeries(points);
-        dataset.addSeries(func);
+        dataset.addSeries(func1);
+        dataset.addSeries(func2);
 
         return dataset;
 
@@ -213,7 +260,7 @@ public class MainFrame extends JFrame {
                 "Y",                      // y axis label
                 dataset,                  // data
                 PlotOrientation.VERTICAL,
-                false,                     // include legend
+                true,                     // include legend
                 false,                     // tooltips
                 false                     // urls
         );
@@ -234,6 +281,8 @@ public class MainFrame extends JFrame {
         final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
         renderer.setSeriesLinesVisible(0, false);
         renderer.setSeriesShapesVisible(1, false);
+        renderer.setSeriesShapesVisible(2, false);
+        renderer.setSeriesShape(0, new Ellipse2D.Double(5,5,5,5));
         plot.setRenderer(renderer);
 
         // change the auto tick unit selection to integer units only...
