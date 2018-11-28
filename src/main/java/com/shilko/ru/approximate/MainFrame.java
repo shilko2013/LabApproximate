@@ -24,10 +24,11 @@ public class MainFrame extends JFrame {
 
     public static void main(final String[] args) {
 
-        final MainFrame demo = new MainFrame("Demo");
-        demo.pack();
-        RefineryUtilities.centerFrameOnScreen(demo);
-        demo.setVisible(true);
+        final MainFrame mainFrame = new MainFrame("Аппроксимация функции");
+        mainFrame.pack();
+        mainFrame.setMinimumSize(mainFrame.getSize());
+        RefineryUtilities.centerFrameOnScreen(mainFrame);
+        mainFrame.setVisible(true);
 
     }
 
@@ -41,8 +42,11 @@ public class MainFrame extends JFrame {
     private JScrollPane scrollPaneTable;
     private ChartPanel chartPanel;
     private final JButton addPoint = new JButton("Добавить точку");
-    private final JButton deletePoint = new JButton("Удалить точки");
+    private final JButton deletePoint = new JButton("Удалить выделенные точки");
+    private final JButton deleteAllPoints = new JButton("Удалить все точки");
     private final JButton approximate = new JButton("Аппроксимировать функцию");
+    private final JLabel xLabel = new JLabel("X: ");
+    private final JLabel yLabel = new JLabel("Y: ");
 
     public MainFrame(final String title) {
         super(title);
@@ -52,15 +56,34 @@ public class MainFrame extends JFrame {
         addOnExitListener();
         initButtons();
         JPanel p = new JPanel();
+        p.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        p.setLayout(new BoxLayout(p, BoxLayout.PAGE_AXIS));
         x.setPreferredSize(new Dimension(200, 20));
         y.setPreferredSize(new Dimension(200, 20));
-        p.add(chartPanel);
-        p.add(x);
-        p.add(y);
-        p.add(scrollPaneTable);
-        p.add(addPoint);
-        p.add(deletePoint);
-        p.add(approximate);
+        JPanel graphAndTable = new JPanel(new BorderLayout());
+        graphAndTable.add(chartPanel, BorderLayout.CENTER);
+        graphAndTable.add(scrollPaneTable, BorderLayout.EAST);
+        p.add(graphAndTable);
+        JPanel inputs = new JPanel();
+        inputs.setLayout(new BoxLayout(inputs, BoxLayout.PAGE_AXIS));
+        JPanel xPanel = new JPanel();
+        xPanel.add(xLabel);
+        xPanel.add(x);
+        JPanel yPanel = new JPanel();
+        yPanel.add(yLabel);
+        yPanel.add(y);
+        inputs.add(xPanel);
+        inputs.add(yPanel);
+        p.add(inputs);
+        GridLayout gridLayout = new GridLayout(0, 2);
+        gridLayout.setHgap(5);
+        gridLayout.setVgap(5);
+        JPanel buttons = new JPanel(gridLayout);
+        buttons.add(addPoint);
+        buttons.add(deletePoint);
+        buttons.add(deleteAllPoints);
+        buttons.add(approximate);
+        p.add(buttons);
         setContentPane(p);
     }
 
@@ -93,11 +116,16 @@ public class MainFrame extends JFrame {
             Arrays.sort(selectedRows);
             for (int i = selectedRows.length - 1; i >= 0; --i)
                 try {
-                pointList.remove(new Point(((Double)((Vector) (vector.elementAt(selectedRows[i]))).elementAt(0)),
-                        ((Double)((Vector) (vector.elementAt(selectedRows[i]))).elementAt(1))));
-                pointTable.removeRow(selectedRows[i]);
-            } catch (Exception ignore){}
+                    pointList.remove(new Point(((Double) ((Vector) (vector.elementAt(selectedRows[i]))).elementAt(0)),
+                            ((Double) ((Vector) (vector.elementAt(selectedRows[i]))).elementAt(1))));
+                    pointTable.removeRow(selectedRows[i]);
+                } catch (Exception ignore) {
+                }
             scrollPaneTable.revalidate();
+        });
+        deleteAllPoints.addActionListener(actionEvent -> {
+            for (int i = pointTable.getRowCount(); i > 0; --i)
+                pointTable.removeRow(0);
         });
     }
 
