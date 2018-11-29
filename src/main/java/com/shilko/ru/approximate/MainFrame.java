@@ -171,6 +171,7 @@ public class MainFrame extends JFrame {
         deleteAllPoints.addActionListener(actionEvent -> {
             for (int i = pointTable.getRowCount(); i > 0; --i)
                 pointTable.removeRow(0);
+            pointList.clear();
         });
         //approximate.setFocusPainted(false);
         approximate.setBackground(new Color(201, 255, 227));
@@ -184,6 +185,10 @@ public class MainFrame extends JFrame {
             Pair<Double, Double> newKoefs;
             Approximation approximation = null;
             int n = functions.getSelectedIndex();
+            if (n == 1 && pointList.stream().map(Point::getX).anyMatch(x -> x <= 0)) {
+                JOptionPane.showMessageDialog(frame, "Некоторые точки не входят в область определения функции (x > 0)\nПожалуйста, измените ввод!", "Ошибка!", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             switch (n) {
                 case 0:
                     approximation = new LinearApproximation();
