@@ -1,7 +1,5 @@
 package com.shilko.ru.approximate;
 
-import com.sun.java.swing.plaf.motif.MotifButtonUI;
-import com.sun.java.swing.plaf.windows.WindowsButtonUI;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -13,19 +11,12 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RefineryUtilities;
-import org.jfree.util.ShapeUtilities;
 
 import javax.swing.*;
-import javax.swing.plaf.ButtonUI;
-import javax.swing.plaf.basic.BasicButtonUI;
-import javax.swing.plaf.metal.MetalButtonUI;
-import javax.swing.plaf.multi.MultiButtonUI;
-import javax.swing.plaf.synth.SynthButtonUI;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.Ellipse2D;
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.List;
 
@@ -59,7 +50,7 @@ public class MainFrame extends JFrame {
     private final JLabel yLabel = new JLabel("Y: ");
     private final JLabel functionLabel = new JLabel("Функция: ");
     private final JComboBox<String> functions =
-            new JComboBox<String>(new String[]{"y = a*x + b","y = a*lnx + b","y = b*e^(a*x)"});
+            new JComboBox<String>(new String[]{"y = a*x + b", "y = a*lnx + b", "y = b*e^(a*x)"});
     private final JLabel oldA = new JLabel("");
     private final JLabel oldB = new JLabel("");
     private final JLabel newA = new JLabel("");
@@ -73,7 +64,7 @@ public class MainFrame extends JFrame {
         addOnExitListener();
         initButtons();
         JPanel p = new JPanel();
-        p.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        p.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         p.setLayout(new BoxLayout(p, BoxLayout.PAGE_AXIS));
         x.setPreferredSize(new Dimension(200, 20));
         y.setPreferredSize(new Dimension(200, 20));
@@ -184,6 +175,36 @@ public class MainFrame extends JFrame {
         //approximate.setFocusPainted(false);
         approximate.setBackground(new Color(201, 255, 227));
         approximate.setFont(new Font("Tahoma", Font.BOLD, 12));
+        approximate.addActionListener(actionEvent -> {
+            if (pointList.size() < 3) {
+                JOptionPane.showMessageDialog(frame, "Для аппроксимации функции надо ввести 3 точки (с учетом того, что наиболее отклоняющаяся будет убрана)!", "Ошибка!", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            Pair<Pair<Double, Double>, Point> oldKoefs;
+            Pair<Double, Double> newKoefs;
+            Approximation approximation = null;
+            int n = functions.getSelectedIndex();
+            switch (n) {
+                case 0:
+                    approximation = new LinearApproximation();
+                    break;
+                case 1:
+                    approximation = new LogApproximation();
+                    break;
+                case 2:
+                    approximation = new ExponentialApproximation();
+                    break;
+            }
+            oldKoefs = approximation.approximateReturnWorstPoint(pointList);
+            oldA.setText(oldKoefs.getFirst().getFirst().toString());
+            oldB.setText(oldKoefs.getFirst().getSecond().toString());
+            List<Point> pointListWithoutWorst = new ArrayList<>(pointList);
+            pointListWithoutWorst.remove(oldKoefs.getSecond());
+            newKoefs = approximation.approximate(pointListWithoutWorst);
+            newA.setText(newKoefs.getFirst().toString());
+            newB.setText(newKoefs.getSecond().toString());
+            initDataset(n, oldKoefs.getFirst(), newKoefs);
+        });
     }
 
     private void initScrollPointTable() {
@@ -206,47 +227,71 @@ public class MainFrame extends JFrame {
     }
 
     private void initGraph() {
-        final JFreeChart chart = initChart(initDataset());
+        final JFreeChart chart = initChart(initDataset(-1, null, null));
         chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new Dimension(500, 270));
     }
 
-    private XYDataset initDataset() {
-
-        points.clear();
-        points.add(-1.0, 1.0);
-        points.add(2.0, 4.0);
-        points.add(3.0, 3.0);
-        points.add(4.0, 5.0);
-        points.add(5.0, 5.0);
-        points.add(6.0, -7.0);
-        points.add(7.0, 7.0);
-        points.add(28.0, 8.0);
-
-        func1.clear();
-        func1.add(-1.0, 5.0);
-        func1.add(2.0, 7.0);
-        func1.add(3.0, 6.0);
-        func1.add(-4.0, -8.0);
-        func1.add(5.0, 4.0);
-        func1.add(6.0, 4.0);
-        func1.add(7.0, 2.0);
-        func1.add(8.0, 1.0);
-
-        func2.clear();
-        func2.add(-12.0, 5.0);
-        func2.add(22.0, 7.0);
-        func2.add(32.0, 6.0);
-        func2.add(42.0, -8.0);
-        func2.add(52.0, 4.0);
-        func2.add(62.0, 4.0);
-        func2.add(72.0, 2.0);
-        func2.add(28.0, 1.0);
+    private XYDataset initDataset(int mode, Pair<Double, Double> oldKoefs, Pair<Double, Double> newKoefs) {
 
         dataset.removeAllSeries();
-        dataset.addSeries(points);
-        dataset.addSeries(func1);
-        dataset.addSeries(func2);
+        points.clear();
+        func1.clear();
+        func2.clear();
+        if (oldKoefs == null || newKoefs == null)
+            return dataset;
+
+        double minBound = pointList.stream().mapToDouble(Point::getX).min().getAsDouble();
+        double maxBound = pointList.stream().mapToDouble(Point::getX).max().getAsDouble();
+        final int numberSteps = 500;
+        double dx = maxBound / numberSteps - minBound / numberSteps;
+        double oldA = oldKoefs.getFirst();
+        double oldB = oldKoefs.getSecond();
+        double newA = newKoefs.getFirst();
+        double newB = newKoefs.getSecond();
+        double koefOfBound = 30;
+
+        switch (mode) {
+            case -1:
+                break;
+            case 0:
+                for (double x = minBound - numberSteps * dx / koefOfBound; x <= minBound; x += dx)
+                    func1.add(x, oldA * x + oldB);
+                for (double x = minBound; x <= maxBound; x += dx) {
+                    func1.add(x, oldA * x + oldB);
+                    func2.add(x, newA * x + newB);
+                }
+                for (double x = maxBound; x <= maxBound + numberSteps * dx / koefOfBound; x += dx)
+                    func2.add(x, newA * x + newB);
+                break;
+            case 1:
+                for (double x = minBound - numberSteps * dx / koefOfBound; x <= minBound; x += dx)
+                    func1.add(x, oldA * Math.log(x) + oldB);
+                for (double x = minBound; x <= maxBound; x += dx) {
+                    func1.add(x, oldA * Math.log(x) + oldB);
+                    func2.add(x, newA * Math.log(x) + newB);
+                }
+                for (double x = maxBound; x <= maxBound + numberSteps * dx / koefOfBound; x += dx)
+                    func2.add(x, newA * Math.log(x) + newB);
+                break;
+            case 2:
+                for (double x = minBound - numberSteps * dx / koefOfBound; x <= minBound; x += dx)
+                    func1.add(x, oldB * Math.pow(Math.E, oldA * x));
+                for (double x = minBound; x <= maxBound; x += dx) {
+                    func1.add(x, oldB * Math.pow(Math.E, oldA * x));
+                    func2.add(x, newB * Math.pow(Math.E, newA * x));
+                }
+                for (double x = maxBound; x <= maxBound + numberSteps * dx / koefOfBound; x += dx)
+                    func2.add(x, newB * Math.pow(Math.E, newA * x));
+                break;
+        }
+
+        if (mode >= 0) {
+            pointList.forEach(e -> points.add(e.getX(), e.getY()));
+            dataset.addSeries(points);
+            dataset.addSeries(func1);
+            dataset.addSeries(func2);
+        }
 
         return dataset;
 
@@ -282,7 +327,8 @@ public class MainFrame extends JFrame {
         renderer.setSeriesLinesVisible(0, false);
         renderer.setSeriesShapesVisible(1, false);
         renderer.setSeriesShapesVisible(2, false);
-        renderer.setSeriesShape(0, new Ellipse2D.Double(5,5,5,5));
+        final double ellipseRadius = 5;
+        renderer.setSeriesShape(0, new Ellipse2D.Double(-ellipseRadius / 2, -ellipseRadius / 2, ellipseRadius, ellipseRadius));
         plot.setRenderer(renderer);
 
         // change the auto tick unit selection to integer units only...
