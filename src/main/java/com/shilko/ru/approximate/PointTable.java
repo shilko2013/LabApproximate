@@ -5,6 +5,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.awt.event.MouseEvent;
 
 class PointTable extends JTable {
     private DefaultTableModel model;
@@ -12,6 +13,22 @@ class PointTable extends JTable {
     @Override
     public boolean isCellEditable(int a, int b) {
         return false;
+    }
+
+    @Override
+    public String getToolTipText(MouseEvent e) {
+        String tip = null;
+        java.awt.Point p = e.getPoint();
+        int rowIndex = rowAtPoint(p);
+        int colIndex = columnAtPoint(p);
+
+        try {
+            tip = getValueAt(rowIndex, colIndex).toString();
+        } catch (RuntimeException e1) {
+            //catch null pointer exception if mouse is over an empty line
+        }
+
+        return tip;
     }
 
     public PointTable(Object[][] data, Object[] columnNames) {
