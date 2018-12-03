@@ -36,6 +36,7 @@ public class MainFrame extends JFrame {
     private final XYSeries points = new XYSeries("Точки");
     private final XYSeries func1 = new XYSeries("Аппроксимирующая функция");
     private final XYSeries func2 = new XYSeries("Аппроксимирующая функция, исключая наиболее отклоняющуюся точку");
+    private final XYSeries badPoint = new XYSeries("Наиболее отклоняющаяся точка");
     private final XYSeriesCollection dataset = new XYSeriesCollection();
     private final IntegerTextField x = new IntegerTextField();
     private final IntegerTextField y = new IntegerTextField();
@@ -189,6 +190,10 @@ public class MainFrame extends JFrame {
                 JOptionPane.showMessageDialog(frame, "Некоторые точки не входят в область определения функции (x > 0)\nПожалуйста, измените ввод!", "Ошибка!", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+            if (n == 2 && pointList.stream().map(Point::getY).anyMatch(y -> y <= 0)) {
+                JOptionPane.showMessageDialog(frame, "Некоторые точки не входят в область определения функции (y > 0)\nПожалуйста, измените ввод!", "Ошибка!", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             switch (n) {
                 case 0:
                     approximation = new LinearApproximation();
@@ -208,7 +213,7 @@ public class MainFrame extends JFrame {
             newKoefs = approximation.approximate(pointListWithoutWorst);
             newA.setText(newKoefs.getFirst().toString());
             newB.setText(newKoefs.getSecond().toString());
-            initDataset(n, oldKoefs.getFirst(), newKoefs);
+            initDataset(n, oldKoefs.getFirst(), newKoefs, oldKoefs.getSecond());
         });
     }
 
@@ -232,19 +237,22 @@ public class MainFrame extends JFrame {
     }
 
     private void initGraph() {
-        final JFreeChart chart = initChart(initDataset(-1, null, null));
+        final JFreeChart chart = initChart(initDataset(-1, null, null, null));
         chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new Dimension(500, 270));
     }
 
-    private XYDataset initDataset(int mode, Pair<Double, Double> oldKoefs, Pair<Double, Double> newKoefs) {
+    private XYDataset initDataset(int mode, Pair<Double, Double> oldKoefs, Pair<Double, Double> newKoefs, Point badPointArg) {
 
         dataset.removeAllSeries();
         points.clear();
         func1.clear();
         func2.clear();
+        badPoint.clear();
         if (oldKoefs == null || newKoefs == null)
             return dataset;
+
+        badPoint.add(badPointArg.getX(),badPointArg.getY());
 
         double minBound = pointList.stream().mapToDouble(Point::getX).min().getAsDouble();
         double maxBound = pointList.stream().mapToDouble(Point::getX).max().getAsDouble();
@@ -293,6 +301,7 @@ public class MainFrame extends JFrame {
 
         if (mode >= 0) {
             pointList.forEach(e -> points.add(e.getX(), e.getY()));
+            dataset.addSeries(badPoint);
             dataset.addSeries(points);
             dataset.addSeries(func1);
             dataset.addSeries(func2);
@@ -330,10 +339,12 @@ public class MainFrame extends JFrame {
 
         final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
         renderer.setSeriesLinesVisible(0, false);
-        renderer.setSeriesShapesVisible(1, false);
         renderer.setSeriesShapesVisible(2, false);
+        renderer.setSeriesShapesVisible(3, false);
+        renderer.setSeriesLinesVisible(1, false);
         final double ellipseRadius = 5;
         renderer.setSeriesShape(0, new Ellipse2D.Double(-ellipseRadius / 2, -ellipseRadius / 2, ellipseRadius, ellipseRadius));
+        renderer.setSeriesShape(1, new Ellipse2D.Double(-ellipseRadius / 2, -ellipseRadius / 2, ellipseRadius, ellipseRadius));
         plot.setRenderer(renderer);
 
         // change the auto tick unit selection to integer units only...

@@ -10,7 +10,7 @@ public class ExponentialApproximation implements Approximation {
         Pair<Double, Double> koefs = approximate(points);
         double a = koefs.getFirst();
         double b = koefs.getSecond();
-        double maxDeviation = -1;
+        double maxDeviation = Double.MIN_VALUE;
         int indexMaxDeviation = -1;
         for (int i = 0; i < points.size(); ++i) {
             double x = points.get(i).getX();
