@@ -56,6 +56,8 @@ public class MainFrame extends JFrame {
     private final JLabel oldB = new JLabel("");
     private final JLabel newA = new JLabel("");
     private final JLabel newB = new JLabel("");
+    private final JLabel badPointX = new JLabel("");
+    private final JLabel badPointY = new JLabel("");
 
     public MainFrame(final String title) {
         super(title);
@@ -120,6 +122,20 @@ public class MainFrame extends JFrame {
         newBPanel.add(newB);
         newKoefs.add(newBPanel);
         p.add(newKoefs);
+
+        JPanel coordBadPoint = new JPanel();
+        coordBadPoint.add(new JLabel("Значения координат самой отклоняющейся точки"));
+        p.add(coordBadPoint);
+        JPanel badPoint = new JPanel(flowLayout);
+        JPanel newXPanel = new JPanel();
+        newXPanel.add(new JLabel("x = "));
+        newXPanel.add(badPointX);
+        badPoint.add(newXPanel);
+        JPanel newYPanel = new JPanel();
+        newYPanel.add(new JLabel("y = "));
+        newYPanel.add(badPointY);
+        badPoint.add(newYPanel);
+        p.add(badPoint);
 
         GridLayout gridLayout = new GridLayout(0, 2);
         gridLayout.setHgap(5);
@@ -210,6 +226,8 @@ public class MainFrame extends JFrame {
             oldB.setText(oldKoefs.getFirst().getSecond().toString());
             List<Point> pointListWithoutWorst = new ArrayList<>(pointList);
             pointListWithoutWorst.remove(oldKoefs.getSecond());
+            badPointX.setText(Double.toString(oldKoefs.getSecond().getX()));
+            badPointY.setText(Double.toString(oldKoefs.getSecond().getY()));
             newKoefs = approximation.approximate(pointListWithoutWorst);
             newA.setText(newKoefs.getFirst().toString());
             newB.setText(newKoefs.getSecond().toString());
